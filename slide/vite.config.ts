@@ -7,11 +7,12 @@ import vaultcss from "vite-plugin-vaultcss";
 const dir = {
   src: "src",
   publicDir: "public",
-  outDir: "dist",
+  outDir: "slide",
 };
 
 export default defineConfig({
   root: dir.src,
+  base: "./",
   publicDir: `../${dir.publicDir}`,
   plugins: [
     viteHtmlLoader(),
