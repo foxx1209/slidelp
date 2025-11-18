@@ -73,6 +73,7 @@ gsap.registerPlugin(ScrollTrigger);
     return false;
   };
 
+  
   // 横スクロール処理（panel間の移動）
   const handleHorizontalScroll = (e, currentX, maxLeftX) => {
     e.preventDefault();
