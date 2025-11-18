@@ -26,20 +26,17 @@ gsap.registerPlugin(ScrollTrigger);
 
   // 状態管理
   let isAnimating = false;
-  let moveTween = null;
   let wheelDelta = 0;
-  let verticalScrollDelta = 0;
+  let verticalScrollDelta = 0; // PC用の閾値管理
 
   // タッチ操作用の変数
-  let touchStartX = 0;
   let touchStartY = 0;
-  let touchMoveX = 0;
-  let touchMoveY = 0;
+  let lastTouchY = 0;
 
   // 定数
   const HORIZONTAL_SCROLL_THRESHOLD = 40;
-  const VERTICAL_SCROLL_THRESHOLD = 200; // PC用：前後のセクションへの自動移動までの閾値
-  const SWIPE_THRESHOLD = 50; // スマホ用：スワイプ判定の最小距離
+  const VERTICAL_SCROLL_THRESHOLD_PC = 200; // PCは誤動作防止のため閾値を設ける
+  const TOUCH_SENSITIVITY = 1.5; // スマホの感度
 
   gsap.set(panelsWrap, { x: 0 });
 
@@ -60,23 +57,20 @@ gsap.registerPlugin(ScrollTrigger);
   const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
   // --- 共通アニメーション処理 ---
-  // 方向(direction): 1 = 次へ(左へ移動), -1 = 前へ(右へ移動)
   const slidePanel = (direction) => {
     if (isAnimating) return;
 
     const currentX = gsap.getProperty(panelsWrap, "x");
     const maxLeftX = getMaxScrollX();
-    const moveValue = direction === 1 ? -getPanelWidth() : getPanelWidth(); // 1なら左へ移動（xはマイナス）
+    const moveValue = direction === 1 ? -getPanelWidth() : getPanelWidth();
 
-    // 移動先が範囲外ならアニメーションしない
     let targetX = clamp(currentX + moveValue, maxLeftX, 0);
     
-    // すでに端にいる場合は何もしない（PCのwheelイベント側で縦スクロール制御するため）
-    if (currentX === targetX) return;
+    if (currentX === targetX) return; // 移動できない場合は終了
 
     isAnimating = true;
 
-    moveTween = gsap.to(panelsWrap, {
+    gsap.to(panelsWrap, {
       x: targetX,
       duration: 0.5,
       ease: "power2.out",
@@ -86,54 +80,40 @@ gsap.registerPlugin(ScrollTrigger);
     });
   };
 
-
-  // --- PC: 縦スクロール処理（前後のセクションへの移動判定） ---
-  const handleVerticalScroll = (e, currentX, maxLeftX) => {
-    const isAtStart = currentX === 0 && e.deltaY < 0;
-    const isAtEnd = currentX <= maxLeftX && e.deltaY > 0;
-
-    if (!isAtStart && !isAtEnd) {
-      verticalScrollDelta = 0;
-      return false;
-    }
-
-    verticalScrollDelta += Math.abs(e.deltaY);
-    
-    if (verticalScrollDelta >= VERTICAL_SCROLL_THRESHOLD) {
-      verticalScrollDelta = 0;
-      return true; // 閾値に達したら通常スクロール許可
-    }
-
-    e.preventDefault();
-    return false;
-  };
-
-  
   // --- PC: ホイールイベント ---
   rowSection.addEventListener(
     "wheel",
     (e) => {
+      // PCの場合、画面内に入っているかチェック
       const rect = rowSection.getBoundingClientRect();
-      const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
-      if (!isInViewport) return;
+      if (rect.top >= window.innerHeight || rect.bottom <= 0) return;
 
       const maxLeftX = getMaxScrollX();
       const currentX = gsap.getProperty(panelsWrap, "x");
 
-      // 縦スクロール処理
-      const shouldAllowVerticalScroll = handleVerticalScroll(e, currentX, maxLeftX);
-      if (shouldAllowVerticalScroll) return;
+      // PC用の閾値判定ロジック
+      const isAtStart = currentX === 0 && e.deltaY < 0;
+      const isAtEnd = currentX <= maxLeftX && e.deltaY > 0;
 
-      // 横スクロール処理
+      // 端にいて、さらに外に行こうとしている時だけページスクロールを許可（閾値あり）
+      if (isAtStart || isAtEnd) {
+        verticalScrollDelta += Math.abs(e.deltaY);
+        if (verticalScrollDelta >= VERTICAL_SCROLL_THRESHOLD_PC) {
+          verticalScrollDelta = 0;
+          return; // preventDefaultせず、ページスクロールさせる
+        }
+      } else {
+        verticalScrollDelta = 0; // 端でなければリセット
+      }
+
+      // ここに来たら「横スライド」として処理
       e.preventDefault();
       if (isAnimating) return;
 
       wheelDelta += e.deltaY;
       if (Math.abs(wheelDelta) < HORIZONTAL_SCROLL_THRESHOLD) return;
 
-      // deltaY > 0 は下にスクロール（＝次へ進む＝direction 1）
       slidePanel(wheelDelta > 0 ? 1 : -1);
-      
       wheelDelta = 0;
     },
     { passive: false }
@@ -141,47 +121,52 @@ gsap.registerPlugin(ScrollTrigger);
 
 
   // --- SP: タッチイベント処理 ---
-
-  // 1. タッチ開始
+  
   rowSection.addEventListener("touchstart", (e) => {
-    touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    touchMoveX = touchStartX;
-    touchMoveY = touchStartY;
+    lastTouchY = touchStartY;
+    wheelDelta = 0;
+    // PC用のverticalScrollDeltaはスマホでは使わない（即時反応させるため）
   }, { passive: false });
 
-  // 2. タッチ移動（縦スクロールをブロックして横スワイプを優先させる判定）
   rowSection.addEventListener("touchmove", (e) => {
-    touchMoveX = e.touches[0].clientX;
-    touchMoveY = e.touches[0].clientY;
+    const currentTouchY = e.touches[0].clientY;
+    
+    // 指を上に動かす(currentが小さい) = 下にスクロールしたい = プラス
+    // 指を下に動かす(currentが大きい) = 上にスクロールしたい = マイナス
+    let deltaY = (lastTouchY - currentTouchY) * TOUCH_SENSITIVITY;
+    lastTouchY = currentTouchY;
 
-    const diffX = touchStartX - touchMoveX;
-    const diffY = touchStartY - touchMoveY;
+    const maxLeftX = getMaxScrollX();
+    const currentX = gsap.getProperty(panelsWrap, "x");
 
-    // 横移動の方が縦移動より大きい場合、横スワイプとみなして画面スクロールを止める
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (e.cancelable) {
-         e.preventDefault(); 
-      }
+    // --- 重要: 端っこ判定 ---
+    // 1. 「最初のパネル」で「上にスクロール（前のセクションに戻る動き）」をしているか？
+    const isTryingToGoPrev = currentX >= 0 && deltaY < 0;
+    
+    // 2. 「最後のパネル」で「下にスクロール（次のセクションに進む動き）」をしているか？
+    // ※ 少数の誤差を許容するため currentX <= maxLeftX + 1 程度で判定しても良いが、GSAP管理なら厳密でOK
+    const isTryingToGoNext = currentX <= maxLeftX && deltaY > 0;
+
+    // 端にいて外側に行こうとしているなら、絶対に preventDefault してはいけない
+    if (isTryingToGoPrev || isTryingToGoNext) {
+      return; // ここで処理を抜け、ブラウザ標準のスクロールに任せる
     }
+
+    // --- 横スライド処理 ---
+    // 端ではない、または端だけど内側に戻ろうとしている場合は画面をロックしてスライド
+    if (e.cancelable) e.preventDefault();
+    
+    if (isAnimating) return;
+
+    wheelDelta += deltaY;
+
+    if (Math.abs(wheelDelta) < HORIZONTAL_SCROLL_THRESHOLD) return;
+
+    slidePanel(wheelDelta > 0 ? 1 : -1);
+    wheelDelta = 0;
+
   }, { passive: false });
-
-  // 3. タッチ終了（スライド実行判定）
-  rowSection.addEventListener("touchend", (e) => {
-    const diffX = touchStartX - touchMoveX;
-    
-    // 移動量が閾値を超えていない場合は無視
-    if (Math.abs(diffX) < SWIPE_THRESHOLD) return;
-
-    // diffX > 0 は指を左に動かした（＝次へ進む＝direction 1）
-    const direction = diffX > 0 ? 1 : -1;
-    
-    slidePanel(direction);
-
-    // リセット
-    touchStartX = 0;
-    touchStartY = 0;
-  });
 
 })();
 
