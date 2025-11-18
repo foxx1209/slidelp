@@ -1,0 +1,55 @@
+{
+  "name": "slide",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "author": "",
+  "browserslist": [
+    "defaults"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "lint:html": "markuplint \"**/*.html\"",
+    "lint:style": "biome check --write ./src && stylelint --fix **/*.{css,scss,sass}",
+    "lint:script": "biome check --write ./src",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.html": [
+      "markuplint",
+      "prettier --write"
+    ],
+    "*.{css,scss}": [
+      "biome check --write",
+      "stylelint --fix"
+    ],
+    "*.{ts,tsx,js,jsx}": "biome check --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@hilosiva/biome-config": "^0.0.1",
+    "@hilosiva/stylelint-config": "^0.0.1",
+    "@hilosiva/vite-plugin-html-loader": "^0.1.0",
+    "@hilosiva/vite-plugin-image-optimizer": "^0.1.0",
+    "@splidejs/splide": "^4.1.4",
+    "gsap": "^3.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
+    "markuplint": "^4.9.2",
+    "path": "^0.12.7",
+    "prettier": "^3.5.3",
+    "stylelint": "^16.7.0",
+    "vaultcss": "^0.2.2",
+    "vaultscript": "^0.1.6",
+    "vite": "^6.1.0",
+    "vite-plugin-vaultcss": "^0.2.2"
+  },
+  "volta": {
+    "node": "20.10.0"
+  }
+}

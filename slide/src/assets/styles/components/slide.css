@@ -1,0 +1,127 @@
+body {
+  display: grid;
+  place-items: center;
+}
+.p-main {
+  inline-size: 100%;
+  block-size: 100vh;
+  max-block-size: calc(667 * var(--torem));
+  margin-inline: auto;
+  overflow: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+}
+
+.p-slide-section {
+  inline-size: 100%;
+  max-inline-size: calc(506 * var(--torem));
+  block-size: calc(667 / 375 * 100vw);
+  max-block-size: calc(667 * var(--torem));
+  margin-inline: auto;
+  scroll-snap-align: start;
+
+  img {
+    inline-size: 100%;
+    height: 100%;
+    aspect-ratio: 375 / 667;
+    object-fit: cover;
+  }
+}
+
+.p-slide-section--1 {
+}
+
+.p-slide-section--2 {
+}
+
+.p-slide-section--3 {
+}
+
+.p-slide-section--4 {
+}
+
+.p-slide-section--5 {
+}
+
+.p-slide-section--6 {
+}
+
+.p-slide-section--7 {
+}
+
+.c-cta {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  inline-size: 100%;
+  padding-inline: calc(20 * var(--torem));
+  transform: translateX(-50%);
+}
+
+.c-cta__link {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: calc(506 * var(--torem));
+  padding: calc(10 * var(--torem)) calc(20 * var(--torem));
+  margin-block: calc(20 * var(--torem));
+  margin-inline: auto;
+  font-size: calc(20 * var(--torem));
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  background-color: red;
+  border-radius: calc(10 * var(--torem));
+}
+.p-slide-section--row {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+.panels-wrap {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+
+  inline-size: max-content;
+  block-size: calc(667 / 375 * 100vw);
+  /* 縦スクロール可能にするために十分な高さを設定（幅を高さに変換） */
+  min-block-size: calc(506 * 4 * var(--torem));
+
+}
+.panel {
+  flex-shrink: 0;
+  inline-size: calc(506 * var(--torem));
+  max-inline-size: calc(506 * var(--torem));
+  block-size: calc(667 / 375 * 100vw);
+  max-block-size: calc(667 * var(--torem));
+
+
+  img {
+    flex-shrink: 0;
+    inline-size: 100%;
+    height: 100%;
+    aspect-ratio: 506 / 667;
+    object-fit: cover;
+  }
+}
+
+.p-slide-section--row .panel:nth-of-type(1) {
+  background-color: #20a4a0;
+}
+.p-slide-section--row .panel:nth-of-type(2) {
+  display: block;
+  text-align: center;
+  text-align: center;
+  text-decoration: none;
+  text-decoration: none;
+  background-color: #f8c78c;
+  background-color: red;
+  background-color: red;
+  border-radius: calc(10 * var(--torem));
+}
+.p-slide-section--row .panel:nth-of-type(3) {
+  background-color: #f1c0c3;
+}
+.p-slide-section--row .panel:nth-of-type(4) {
+  background-color: #a54675;
+}

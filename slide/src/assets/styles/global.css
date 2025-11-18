@@ -1,0 +1,6 @@
+@import "vaultcss";
+@import "./components/slide.css" layer(components);
+
+.u-hidden {
+  display: none;
+}
